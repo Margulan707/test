@@ -1,0 +1,299 @@
+{%extends "workrkopt/home.html"%}
+{%load static%}
+
+{% block content %}
+
+<link href="https://unpkg.com/gijgo@1.9.11/css/gijgo.min.css" rel="stylesheet" type="text/css" />
+<!-- Styles -->
+<link href="https://unpkg.com/gijgo@1.9.11/css/gijgo.min.css" rel="stylesheet" type="text/css" />
+
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <div class="user-profile">
+          <div class="custom-tab user-profile-tab">
+            <ul class="nav nav-tabs" role="tablist">
+              
+            </ul>
+            <div class="tab-content">
+              <div role="tabpanel" class="tab-pane active" id="1">
+                <div class="basic-information">
+                  <h4>Общая Информация</h4>
+                  <div class="center">
+                    <div class="thumbnail">
+                      <img src="{{ worker.Photo.url }}" class="portrait" alt="Image" />
+                    </div>
+                  </div>
+                  <div class="idnumber-content">
+                    <span class="contact-title">ID:</span>
+                    <span class="id-number">{{worker.pk}}</span>
+                  </div>
+                  <div class="firstname-content">
+                    <span class="contact-title">Имя:</span>
+                    <span class="first-name">{{worker.Name}}</span>
+                  </div>
+                  <div class="lastname-content">
+                    <span class="contact-title">Фамилия:</span>
+                    <span class="last-name">{{worker.Surname}}</span>
+                  </div>
+                  <div class="birthday-content">
+                    <span class="contact-title">Дата Рождения:</span>
+                    <span class="birth-date">{{worker.BirthDate|date:"F d, Y"}} </span>
+                  </div>
+                  <div class="gender-content">
+                    <span class="contact-title">Пол:</span>
+                    <span class="gender">{{worker.get_Gender_display}}</span>
+                  </div>
+                  <div class="position-content">
+                    <span class="contact-title">Позиция:</span>
+                    <span class="work-position">{{worker.Position}}</span>
+                  </div>
+                  <div class="schedule-content">
+                    <span class="contact-title">Расписание:</span>
+                    <span class="work-position">{{worker.Schedule}}</span>
+                  </div>
+                </div>
+                <div class="contact-information">
+                  <h4>Контактная Информация</h4>                  
+                  <div class="phone-content">
+                    <span class="contact-title">Телефон:</span>
+                    <span class="phone-number">{{worker.Phone}}</span>
+                  </div>
+                  <div class="email-content">
+                    <span class="contact-title">Email:</span>
+                    <span class="contact-email">{{worker.Email}}</span>
+                  </div>
+                  <div class="col-lg-8 p-l-0 title-margin-left">
+                    <div class="page-header">
+                      <div id="browse_app">
+                        <a class="btn btn-danger pull-right dt-buttons" href="/monitoring/worker/{{worker.pk}}/delete/" style="margin-right: 10px;">Удалить</a>
+                      </div>
+                      <div id="browse_app">
+                        <a class="btn btn-default pull-right dt-buttons" href="/monitoring/worker/{{worker.pk}}/change/" style="margin-right: 10px;">Изменить</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>                              
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card">
+      <div class = "card-title">
+        <h4>История по дням</h4>
+      </div>
+      <table id="export" class="table" style="width:100%">
+
+        <thead>
+
+        <tr>
+        <th>День</th>
+        <th>Общее количество часов</th>
+        <th>Отработано в этот день</th>
+        <th>Опоздание</th>
+        <th>Ранний уход</th>
+        </tr>
+        </thead>
+        <tbody>
+
+        {% for day in days %}
+          <tr>
+            <td>{{day.Day}}</td>
+            <td>{{day.Total_Time}}</td>
+            <td>{{day.Worked_Time}}</td>
+            <td>{% if day.Late_Come %}
+              <span style="color:red"> Опоздал {{day.Late_Come}} </span>
+              {%endif%}</td>
+            <td>
+              {% if day.Early_Leave %}
+              <span style="color:red"> Вышел Раньше {{day.Early_Leave}} </span>
+              {%endif%}</td>
+
+          </tr>
+
+        {% endfor %}
+        
+        </tbody>
+      
+      </table>
+        
+    </div>
+      <!-- /# card -->
+  </div>
+</div>
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class = "card-title">
+      <h4>Как работал {{worker.Name}} {{worker.Surname}} в текущем месяце</h4>
+      </div>
+      <div class="card-body">
+      <div class="row">
+        {% csrf_token %}
+        
+        <div class="col-sm-6">
+           <input id="datepicker-1" value="{{first_month_day}}" style="width: 90%" />
+        </div>
+        <div class="col-sm-6">
+          <input id="datepicker-2" value="{{today_date}}" style="width: 90%" />
+        </div>
+      </div>
+      <button class="btn btn-light" title="Выберите начальную, затем, конечную дату и проведите анализ. Так, вы сможете узнать сколько проработал ваш сотрудник в данный промежуток времени" onclick="configure()">Провести анализ</button>  
+    </div>
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card p-0">
+          <div class="stat-widget-three">
+            <div class="stat-icon bg-primary">
+              <i class="ti-time"></i>
+            </div>
+            <div class="stat-content">
+              <div id="Total_Time" class="stat-digit">{{Total_Time}}</div>
+              <div class="stat-text">Обязательных рабочих часов</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-12">
+        <div class="card p-0">
+          <div class="stat-widget-three">
+            <div class="stat-icon bg-success">
+              <i class="ti-check"></i>
+            </div>
+            <div class="stat-content">
+              <div id="Worked_Time" class="stat-digit">{{Total_Worked_Time}}</div>
+              <div class="stat-text">было отработано</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-12">
+        <div class="card p-0">
+          <div class="stat-widget-three">
+            <div class="stat-icon bg-warning">
+              <i class="ti-stats-down"></i>
+            </div>
+            <div class="stat-content">
+              <div id="Average_Late_Come"class="stat-digit">{{Total_Average_Late_Come}}</div>
+              <div class="stat-text">Среднее время опоздании</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-12">
+        <div class="card p-0">
+          <div class="stat-widget-three">
+            <div class="stat-icon bg-warning">
+              <i class="ti-stats-down"></i>
+            </div>
+            <div class="stat-content">
+              <div id="Average_Early_Leave" class="stat-digit">{{Total_Average_Early_Leave}}</div>
+              <div class="stat-text">Среднее время ранних уходов</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-12">
+        <div class="card p-0">
+          <div class="stat-widget-three">
+            <div class="stat-icon bg-danger">
+              <i class="ti-close"></i>
+            </div>
+            <div class="stat-content">
+              <div id="Total_Theft_Time" class="stat-digit">{{Total_Time_Theft}}</div>
+              <div class="stat-text">Общее количество украденного времени</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class = "card-title">
+        <h4>Отметки</h4>
+      </div>
+      <div class = "card-body">
+      <table id="export-2" class="table" style="width:100%">
+        <thead>
+        <tr>
+        <th>Время</th>
+        <th>Статус</th>
+        </tr>
+        </thead>
+        <tbody>
+
+        {% for check in checks %}
+          <tr>
+            <td>{{check.date}}</td>
+            <td>{%if check.Status %}
+                  Зашел 
+                {% else %}
+                  Вышел
+                {% endif %}</td>
+
+          </tr>
+
+        {% endfor %}
+        
+        </tbody>
+      
+      </table>
+    </div>  
+    </div>
+  </div>
+  
+</div>
+
+
+             
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://unpkg.com/gijgo@1.9.11/js/gijgo.min.js" type="text/javascript"></script>
+<script>
+  var $datepicker_1 = $('#datepicker-1').datepicker({format: 'yyyy-dd-mm', uiLibrary: 'bootstrap'});
+  var $datepicker_2 = $('#datepicker-2').datepicker({format: 'yyyy-dd-mm', uiLibrary: 'bootstrap'});
+  function configure(){
+    console.log('send')
+    console.log($datepicker_1.value())
+    $.ajax({
+      url : "api/", // the endpoint
+      type : "POST", // http method
+
+      data : { date_1: $datepicker_1.value(),
+               date_2: $datepicker_2.value(),
+               csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+              }, // data sent with the post request
+
+      // handle a successful response
+      success : function(json) {
+        $('#post-text').val(''); // remove the value from the input
+        console.log(json); // log the returned json to the console
+        json_value = $.parseJSON(json) 
+        $('#Total_Time').html(json_value['Total_Time']);
+        $('#Worked_Time').html(json_value['Total_Worked_Time']);
+        $('#Average_Late_Come').html(json_value['Total_Average_Late_Come']);
+        $('#Average_Early_Leave').html(json_value['Total_Average_Early_Leave']);
+        $('#Total_Theft_Time').html(json_value['Total_Time_Theft']);                
+      },
+
+      // handle a non-successful response
+      error : function(xhr,errmsg,err) {
+        $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+        " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+        console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+      }
+    });
+
+  }
+  
+  
+</script>
+{%endblock%}

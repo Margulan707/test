@@ -1,0 +1,158 @@
+{% load static  %}
+<!DOCTYPE html>
+<html lang="en">
+
+  	<head>
+	    <meta charset="utf-8">
+	    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+	    <meta name="viewport" content="width=device-width, initial-scale=1">
+	    <!-- Styles -->
+	    <link href="{% static 'css/lib/font-awesome.min.css' %}" rel="stylesheet">
+	    <link href="{% static 'css/lib/bootstrap.min.css' %}" rel="stylesheet">
+	    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+	    <link href="https://fonts.googleapis.com/css?family=Open+Sans+Condensed:300&amp;subset=cyrillic" rel="stylesheet">
+	    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+
+  	</head>
+
+  	<body scroll="no" style="overflow:hidden">
+  		<div class="container-fluid p-0">
+
+	  		<div class="row p-0">
+	  			<div id = "alert" class="col-12 p-0" style ="position: absolute; z-index:1;" >
+	  				
+				</div>	
+
+				{% csrf_token %}
+				<div class="col-6 p-0">
+					<input type=button class="btn btn-light" style="color:#A4DE02; width: 100%; height:100vh;font-size:100px; font-family:'Open Sans Condensed'"value="Войти" onClick="configure(1)">
+				</div>	
+				<div class="col-6 p-0">
+					<a href="/monitoring" style = "position: absolute; text-align: right;
+					top: 0px; right: 10px; font-size:  40px; color: #545454;">X</a>
+					<input type=button class="btn btn-dark" style="color:#76BA1B; width: 100%; height:100vh; font-size:100px;font-family:'Open Sans Condensed'; background-color: #343a40 !important;"value="Выйти" onClick="configure(0)">
+				</div>
+				
+				
+	  		</div>
+	  	</div>
+	  	<div id="my_camera" style="visibility: hidden"></div>
+		<div id="results"></div>
+  	</body>
+
+
+	<script src="{% static 'js/lib/jquery.min.js' %}"></script>
+	<script src="{% static 'js/lib/jquery.nanoscroller.min.js' %}"></script>
+	<script src="{% static 'js/lib/menubar/sidebar.js' %}"></script>
+	<script src="{% static 'js/lib/preloader/pace.min.js' %}"></script>
+	<script src="{% static 'js/lib/bootstrap.min.js' %}"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="https://pixlcore.com/demos/webcamjs/webcam.js"></script>
+	<script src="https://pixlcore.com/demos/webcamjs/webcam.min.js"></script>
+	<script src="{% static 'js/scripts.js' %}"></script>
+	<script language="JavaScript">
+	var json_value
+	function configure(status){
+		
+		Webcam.set({
+		width: 320,
+		height: 240,
+		image_format: 'jpeg',
+		jpeg_quality: 90
+		});
+		Webcam.attach( '#my_camera' );
+		setTimeout(function() {
+		    
+		    Webcam.snap( function(data_uri) {
+			// display results in page
+				document.getElementById('results').innerHTML = 
+				'<img id="imageprev" src="'+data_uri+'"/>';
+				} );
+
+			Webcam.reset();
+
+			var base64image = document.getElementById("imageprev").src;
+			console.log(base64image)
+			$.ajax({
+				url : "/facerec/api/", // the endpoint
+				type : "POST", // http method
+
+				data : {check_status: status,  
+						the_image : base64image,
+				         csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+				        }, // data sent with the post request
+
+				// handle a successful response
+				success : function(json) {
+					$('#post-text').val(''); // remove the value from the input
+					console.log(json); // log the returned json to the console
+					json_value = $.parseJSON(json) 
+					if(json_value['status_message']=='0' ||
+						json_value['status_message']=='3' ||
+						json_value['status_message']=='4' ||
+						json_value['status_message']=='5'){
+
+						$('#alert').html("<div class='alert alert-danger animated fadeInDown' role='alert'  style = 'margin-right:30%; margin-left:30%; margin-top:30px;'>" + json_value['message'] + "</div>");
+						setTimeout(function(){
+							$('#alert').html("");
+						}, 3000);
+
+					} 
+						
+					else if (json_value['status_message']=='1'||
+							json_value['status_message']=='2') {
+					 	
+					 	console.log("success"); // another sanity check
+						$('#alert').html("<div class='alert alert-success animated fadeInDown' role='alert'  style = 'margin-right:30%; margin-left:30%; margin-top:30px;'>" +
+										  json_value['Name']+
+										", "+ json_value['message'] + "<a onClick='check_cancel()' class='font-weight-bold alert-link'>Вы не " + json_value['Name'] +"?</a> </div>");
+						setTimeout(function(){
+							$('#alert').html("");
+						}, 4500);
+					}
+					
+					
+						
+				},
+
+				// handle a non-successful response
+				error : function(xhr,errmsg,err) {
+					$('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+					" <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+					console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+				}
+			});
+			}, 1500);
+	}
+	function check_cancel(){
+		$.ajax({
+		url : "/facerec/api/delete/", // the endpoint
+		type : "POST", // http method
+
+		data : { pk_delete : json_value['check_pk'],
+		         csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+		        }, // data sent with the post request
+
+		// handle a successful response
+		success : function(json) {
+			$('#post-text').val(''); // remove the value from the input
+			console.log(json); // log the returned json to the console
+			if (json == "deleted") {
+			 	console.log("success"); // another sanity check
+				$('#alert').html("<div class='alert alert-danger animated fadeInDown' role='alert'  style = 'margin-right:30%; margin-left:30%; margin-top:30px;'> Повторите еще раз! </div>");
+				setTimeout(function(){
+					$('#alert').html("");
+				}, 3000);
+			} 	
+		},
+
+		// handle a non-successful response
+		error : function(xhr,errmsg,err) {
+			$('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+			" <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+			console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+		}
+	});
+	}
+	</script>

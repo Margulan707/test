@@ -1,0 +1,251 @@
+{% extends "workrkopt/home.html" %}
+{%load static%}
+{% load crispy_forms_tags %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-12">
+      <div class="card">  
+          <div class="card-body">
+              <div class="row">               
+                  <div class="col-lg-12">
+                      <div class="card-title">
+                          {% csrf_token %}
+                          <h4>Работают в этот день</h4>
+                      </div>
+                      <div class="table-responsive table-wrapper-scroll-y">
+                          <table class="table table-sm" id="data">
+                              <thead>
+                                  <tr> 
+                                      <th></th>
+                                      <th>Фото</th>
+                                      <th>Имя</th>
+                                      <th>Позиция</th>
+                                      <th>Расписание</th>
+                                      <th>Опоздание</th>
+                                      <th>Отработал сегодня</th>
+                                      <th>Статус</th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  {% for day in days %}
+                                  <tr>
+                                      <td><button type="button" class="btn btn-outline-success btn-sm" onclick="configure({{day.pk}})"> + </button></td>
+                                      <td>
+                                          <div class="round-img">
+                                              <img src="{{ day.Worker.Photo.url }}" >
+                                          </div>
+                                      </td>
+                                      <td><span>{{day.Worker.Name}} {{day.Worker.Surname}}</span></td>
+                                      <td><span>{{day.Worker.Position}}</span></td>
+                                      <td><span>{{day.Worker.Schedule}}</td>
+                                      <td><span>{{day.Late_Come}}</td>
+                                      <td><span>{{day.Worked_Time}}</td>
+                                      {% if day.Status == "Working"%}
+                                      <td><span class="badge badge-success">Работает</span></td>
+                                      {% else %}
+                                      <td><span class="badge badge-danger">Не работает</span></td>
+                                      
+                                      {% endif %}
+                                  </tr>
+                                  {% endfor %}
+                                  
+                              </tbody>
+                          </table>
+                      </div>
+                  </div>
+              </div> 
+          </div>
+      </div>
+  </div>
+  <!-- /# column -->
+</div>
+<!-- /# row -->
+
+<div class="row">
+  <div id="main_row" class="col-lg-6">
+  </div>
+{% if issues %}
+  {% for issue in issues %}
+  <div class="col-lg-6">
+      <div class="card">  
+          <div class="card-body">
+              <div class="row">               
+                  <div class="col-lg-12"> 
+                        <div class="card-title" id = "issue{{issue.pk}}">
+                            <h4>Неучтенное время:</h4>
+                        </div>
+                        <div class="col-lg-12">
+                          <div class="card p-0">
+                             <div class="card-header">{{issue.Worker.Name}} {{issue.Worker.Surname}}: {{issue.Worked_Time}}, {{issue.Status}}</div>
+                            <div class="stat-widget-three">
+                              <div class="stat-icon bg-primary">
+                                <i class="ti-user"></i>
+                              </div>
+                              <div class="stat-content" id = "issue{{issue.pk}}">
+                                <div class="stat-digit">C {{issue.Start_Time}} по {{issue.Finish_Time}}</div>
+                                {%csrf_token%}
+                                <button class="btn btn-success" onclick="penalty(0, {{issue.pk}})"> Засчтитать время </button>
+                                <button class="btn btn-danger" onclick="penalty(100, {{issue.pk}})"> Отнять время </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                   </div>
+              </div> 
+          </div>
+      </div>
+  </div>
+  {% endfor %}
+  {%endif%}
+</div>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script type="text/javascript">
+function penalty(num, pk){ 
+  $.ajax({
+        url : "/monitoring/api/penalty/", // the endpoint
+        type : "POST", // http method
+
+        data : {penalty: num,
+                pk: pk,  
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+                }, // data sent with the post request
+
+        // handle a successful response
+        success : function(json) {
+          json_value = $.parseJSON(json)
+          pk = json_value["pk"]
+          console.log(pk)
+          $( '#issue' + pk ).append( "<p>Исправлено</p>" );
+        },
+
+        // handle a non-successful response
+        error : function(xhr,errmsg,err) {
+          console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+        }
+      });
+}
+</script>
+<script>
+  var Start_Times = null
+  var Finish_Times = null
+  var Worker_Comes = null
+  var Worker_Leaves = null  
+  var Worker_Image = null
+  var Total_Time = null
+  var Total_Worked_Time = null
+  var number_workshifts = null
+  var number_worked_workshifts = null
+  var worker_details = null
+  var Late_Comes = null
+  var Early_Leaves = null
+  var Total_Early_Leave = null
+  var Total_Late_Come = null
+  var Total_Time_Theft = null
+  worker_details_content_1 = ' <div class="card"><div class="card-body"><legend class="border-bottom mb-4">Сегодня</legend> <h4 id="Worker_Name"></h4> <div class="center"><div class="thumbnail" style="margin-left: 90px"> <img id="Worker_Image"src="" class="portrait" alt="" /></div></div><div class="col-lg-12"><div class="card p-0"><div class="stat-widget-three"><div class="stat-icon bg-primary"><i class="ti-time"></i></div><div class="stat-content"><div id="Total_Time" class="stat-digit"></div><div class="stat-text">Количество обязательных рабочих часов за сегодня </div> </div> </div></div></div><div id="worker-timeline"></div><div style="text-align:center"><a id="worker-a" onclick="display_timeline()" ><i id ="worker-icon" class="ti-angle-down" style="font-size:30px"></i></a></div><div class="col-lg-12"><div class="card p-0"><div class="stat-widget-three"><div class="stat-icon bg-success"><i class="ti-check"></i></div><div class="stat-content"><div id="Total_Worked_Time" class="stat-digit"></div><div class="stat-text">Количество отработанных часов за сегодня </div></div></div></div></div><div class="col-lg-12"><div class="card p-0"><div class="stat-widget-three"><div class="stat-icon bg-warning"><i class="ti-stats-down"></i></div><div class="stat-content"><div id="Total_Late_Come" class="stat-digit"></div><div class="stat-text">Общее время опозданий </div></div></div></div></div><div class="col-lg-12"><div class="card p-0"><div class="stat-widget-three"><div class="stat-icon bg-warning"><i class="ti-stats-down"></i></div><div class="stat-content"><div id="Total_Early_Leave" class="stat-digit"></div><div class="stat-text">Общее время ранних уходов </div></div></div></div></div><div class="col-lg-12"><div class="card p-0"><div class="stat-widget-three"><div class="stat-icon bg-danger"><i class="ti-close"></i></div><div class="stat-content"><div id="Total_Time_Theft" class="stat-digit"></div><div class="stat-text">Украдено за весь день </div></div></div></div></div></div></div>'
+  
+
+  function display_timeline(day_pk){
+    
+    
+    $('#worker-icon').attr('class','ti-close');
+    $('#worker-a').attr('onclick','delete_timeline()');
+    $('#worker-timeline').append('<ul id="worker-timeline-ul" class="timeline"></ul>');
+    var i;
+    for (i=0;i<number_workshifts; i++){
+      status_color_in = "success"
+      status_color_out = "success"
+      status_icon_in = "fa-check"
+      status_icon_out = "fa-check"
+      status_in = "Прибыл на рабочее место"
+      status_out = "Ушел с рабочего места"
+      time_out = 'В ' + Worker_Leaves[i]+'. Ушел раньше на '+Early_Leaves[i]
+      time_in = 'В ' + Worker_Comes[i]+'. Опоздал на '+ Late_Comes[i]
+      if(Worker_Comes[i]=="no_check" || Worker_Comes[i]==undefined){
+        time_in = "Не прибыл на рабочее место"
+        status_color_in = "danger"
+        status_icon_in = "fa-times"
+        status_in = "_"
+      }
+      if(Worker_Leaves[i]=="no_check" || Worker_Leaves[i]==undefined){
+        time_out = "Не прибыл на рабочее место"
+        status_color_out = "danger"
+        status_icon_out = "fa-times"
+        status_out = "_"
+      }
+      $('#worker-timeline-ul').append('<li> <div class="timeline-badge primary"><i class="fa fa-clock-o"></i></div> <div class="timeline-panel"> <div class="timeline-heading"> <h5 class="timeline-title">В ' + Start_Times[i] +'</h5> </div> <div class="timeline-body"> <p>Начало рабочей смены</p> </div> </div> </li>')
+      $('#worker-timeline-ul').append('<li> <div class="timeline-badge '+status_color_in+'"><i class="fa '+status_icon_in+'"></i></div> <div class="timeline-panel"> <div class="timeline-heading"> <h5 class="timeline-title">'+time_in+'</h5> </div> <div class="timeline-body"> <p>'+ status_in +'</p> </div> </div> </li>')
+      $('#worker-timeline-ul').append('<li> <div class="timeline-badge primary"><i class="fa fa-clock-o"></i></div> <div class="timeline-panel"> <div class="timeline-heading"> <h5 class="timeline-title">В '+ Finish_Times[i]+'</h5> </div> <div class="timeline-body"> <p>Конец рабочей смены</p> </div> </div> </li>')
+      $('#worker-timeline-ul').append('<li> <div class="timeline-badge '+status_color_out+'"><i class="fa '+status_icon_out+'"></i></div> <div class="timeline-panel"> <div class="timeline-heading"> <h5 class="timeline-title">'+ time_out +'</h5> </div> <div class="timeline-body"> <p>' + status_out + '</p> </div> </div> </li>')
+
+    } 
+
+      
+
+  }
+  
+  function delete_timeline(day_pk){
+    $('#worker-icon').attr('class','ti-angle-down');
+    $('#worker-a').attr('onclick','display_timeline()');
+    $('#worker-timeline').empty();
+
+  }
+  function configure(day_pk){
+    $('#main_row').empty()
+    worker_details = false
+    console.log(day_pk)
+    if (!worker_details){
+      $('#main_row').append(worker_details_content_1);
+      worker_details=true
+    }
+    $.ajax({
+      url : "api/", // the endpoint
+      type : "POST", // http method
+
+      data : { pk_day: day_pk,
+               csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+              }, // data sent with the post request
+
+      // handle a successful response
+      success : function(json) {
+        
+        json_value = $.parseJSON(json) 
+        Start_Times = json_value['Start_Times'].split(';');
+        Finish_Times = json_value['Finish_Times'].split(';');
+        Worker_Comes = json_value['Worker_Comes'].split(';');
+        Worker_Leaves = json_value['Worker_Leaves'].split(';');
+        Late_Comes = json_value['Late_Comes'].split(';');
+        Early_Leaves = json_value['Early_Leaves'].split(';');
+        Worker_Image = json_value['image']
+        number_workshifts = json_value['number_workshifts']
+        number_worked_workshifts = json_value['number_worked_workshifts']
+        Total_Time = json_value['Total_Time']
+        Total_Worked_Time = json_value['Total_Worked_Time']
+        Total_Early_Leave = json_value['Total_Early_Leave']
+        Total_Late_Come = json_value['Total_Late_Come']
+        Total_Time_Theft = json_value['Total_Time_Theft']
+        $('#Worker_Image').attr('src', Worker_Image)
+        $('#Total_Time').html(Total_Time+" за "+ number_workshifts+" смены")
+        $('#Total_Worked_Time').html(Total_Worked_Time+" за "+ number_worked_workshifts+" смены")
+        $('#Total_Early_Leave').html(Total_Early_Leave)
+        $('#Total_Late_Come').html(Total_Late_Come)
+        $('#Total_Time_Theft').html(Total_Time_Theft)
+       
+
+
+        
+      },
+
+      // handle a non-successful response
+      error : function(xhr,errmsg,err) {
+        $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+        " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+        console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+      }
+    });
+
+  }
+  
+  
+</script>
+{% endblock %}

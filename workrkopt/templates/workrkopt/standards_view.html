@@ -1,0 +1,49 @@
+    {% extends "workrkopt/home.html" %}
+{%load static%}
+{% load crispy_forms_tags %}
+{% block content %}
+<div class="row">    
+    {% for standard in standards %}
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="tab-content">
+                <div role="tabpanel" class="tab-pane active" id="1">
+                    <div class="basic-information">
+                        <div class="row">
+                        	<div class="col-sm-6">
+                        	<h3> {{standard.Name}} </h3>
+                        	</div>
+                        	<div class="col-sm-6">
+                        		<a  href="/monitoring/standards/{{standard.pk}}/delete" style="float: right; margin-left: 10px; color:red">Удалить</a>
+
+                        		<a  href="/monitoring/standards/{{standard.pk}}/change" style="float: right">Изменить</a>
+
+                        	</div>
+                        </div>
+                    </div>
+                
+                    <div class="schedule-content">
+                        <span class="contact-title">Допустимое время опоздания (мин):</span>
+                        <span class="work-schedule">{{standard.Late_Come}}</span>
+                    </div>
+                    <div class="schedule-content">
+                        <span class="contact-title">Допустимое время раннего ухода (мин):</span>
+                        <span class="work-schedule">{{standard.Early_Leave}}</span>
+                    </div>
+                </div>                     
+            </div>
+        </div>
+    </div>
+    {%endfor%}
+    
+    <div class="col-sm-6 " style="text-align: center">
+            <a href="/monitoring/standards/add" class="btn btn-fix  no-decor">
+                <img class="resize-image no-decor" src="{% static '/images/plus.png' %}"  >
+            </a>
+               
+    </div>
+
+    <!-- /# column -->
+</div>
+
+{% endblock %}
